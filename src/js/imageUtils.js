@@ -1,9 +1,10 @@
-export function resize(image, width, height) {
+export function resizeImage(image, width, height, smooth = true) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext('2d');
-  canvas.drawImage(image, 0, 0, width, height);
+  context.imageSmoothingEnabled = smooth;
+  context.drawImage(image, 0, 0, width, height);
   return canvas;
 }
 
