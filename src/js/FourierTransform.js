@@ -208,7 +208,7 @@ export default class FourierTransform {
       this._sinCosTable[n8] = Math.sqrt(0.5);
     }
     for (let i = 0; i < n4; i ++) {
-      this._sinCosTable[n2 - i]  = this._sinCosTable[i];
+      this._sinCosTable[n2 - i] = this._sinCosTable[i];
     }
     for (let i = 0; i < n2p4; i ++) {
       this._sinCosTable[i + n2] = -this._sinCosTable[i];
