@@ -313,4 +313,28 @@ export default class FourierTransform {
 
     return this;
   }
+
+  highFrequencyAmplifier(radius, radiusSize, level) {
+    const n2 = this._size >> 1;
+    for (let y =- n2; y < n2; y ++) {
+      for (let x =- n2; x < n2; x ++) {
+        const r = Math.sqrt(x ** 2 + y ** 2);
+
+        let value;
+        if (r < radius) {
+          continue;
+        } else if (r > radius + radiusSize) {
+          value = level;
+        } else {
+          value = ((r - radius) / radiusSize) * (level - 1) + 1;
+        }
+
+        const i = n2 + (y + n2) * this._size + x;
+        this._real[i] *= value;
+        this._imag[i] *= value;
+      }
+    }
+
+    return this;
+  }
 }
