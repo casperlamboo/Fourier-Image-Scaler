@@ -2,8 +2,8 @@ export default class FourierTransform {
   _bitReversalTable = null;
   _sinCosTable = null;
   _size = 0;
-  _real = [];
-  _imag = [];
+  _real = [[], [], []];
+  _imag = [[], [], []];
 
   init(image) {
     // throw error if size is not power of 2 or sqaure
@@ -27,20 +27,16 @@ export default class FourierTransform {
     context.drawImage(image, 0, 0);
     const imageData = context.getImageData(0, 0, this._size, this._size);
 
-    this._real = [];
-    this._imag = [];
+    this._real = [[], [], []];
+    this._imag = [[], [], []];
     for (let y = 0; y < this._size; y ++) {
       for (let x = 0; x < this._size; x ++) {
         const i = y * this._size + x;
 
-        const r = imageData.data[i * 4];
-        const g = imageData.data[i * 4 + 1];
-        const b = imageData.data[i * 4 + 2];
-        const a = imageData.data[i * 4 + 3];
-        const luma = (r * 0.2126 + g * 0.7152 + b * 0.0722) / (a / 255);
-
-        this._real[i] = luma;
-        this._imag[i] = 0.0;
+        for (let j = 0; j < 3; j ++) {
+          this._real[j][i] = imageData.data[i * 4 + j];
+          this._imag[j][i] = 0.0;
+        }
       }
     }
 
@@ -53,41 +49,51 @@ export default class FourierTransform {
     if (inverse) {
       const iSize = 1 / this._size;
       for (let i = 0; i < this._size; i ++) {
-        real[i] *= iSize;
-        imag[i] *= iSize;
+        for (let j = 0; j < 3; j ++) {
+          real[j][i] *= iSize;
+          imag[j][i] *= iSize;
+        }
       }
     }
   }
 
   fft2d(inverse) {
-    const tempReal = [];
-    const tempImag = [];
+    const tempReal = [[], [], []];
+    const tempImag = [[], [], []];
     // x-axis
     for (let y = 0; y < this._size; y ++) {
       for (let x = 0; x < this._size; x ++) {
         const i = y * this._size + x;
-        tempReal[x] = this._real[i];
-        tempImag[x] = this._imag[i];
+        for (let j = 0; j < 3; j ++) {
+          tempReal[j][x] = this._real[j][i];
+          tempImag[j][x] = this._imag[j][i];
+        }
       }
       this._fft1d(tempReal, tempImag, inverse);
       for (let x = 0; x < this._size; x ++) {
         const i = y * this._size + x;
-        this._real[i] = tempReal[x];
-        this._imag[i] = tempImag[x];
+        for (let j = 0; j < 3; j ++) {
+          this._real[j][i] = tempReal[j][x];
+          this._imag[j][i] = tempImag[j][x];
+        }
       }
     }
     // y-axis
     for (let x = 0; x < this._size; x ++) {
       for (let y = 0; y < this._size; y ++) {
         const i = y * this._size + x;
-        tempReal[y] = this._real[i];
-        tempImag[y] = this._imag[i];
+        for (let j = 0; j < 3; j ++) {
+          tempReal[j][y] = this._real[j][i];
+          tempImag[j][y] = this._imag[j][i];
+        }
       }
       this._fft1d(tempReal, tempImag, inverse);
       for (let y = 0; y < this._size; y ++) {
         const i = y * this._size + x;
-        this._real[i] = tempReal[y];
-        this._imag[i] = tempImag[y];
+        for (let j = 0; j < 3; j ++) {
+          this._real[j][i] = tempReal[j][y];
+          this._imag[j][i] = tempImag[j][y];
+        }
       }
     }
 
@@ -98,31 +104,36 @@ export default class FourierTransform {
     canvas.width = canvas.height = this._size;
     const context = canvas.getContext('2d');
     const imageData = context.createImageData(this._size, this._size);
+    imageData.data.fill(255);
 
-    const spectrum = [];
+    const spectrum = [[], [], []];
 
     let max = 1.0;
     for (let i = 0; i < this._size ** 2; i ++) {
-      let magnitude = Math.sqrt(this._real[i] ** 2 + this._imag[i] ** 2);
-      if (isLog) magnitude = Math.log(magnitude);
+      for (let j = 0; j < 3; j ++) {
+        let magnitude = Math.sqrt(this._real[j][i] ** 2 + this._imag[j][i] ** 2);
+        if (isLog) magnitude = Math.log(magnitude);
 
-      spectrum[i] = magnitude;
-      if (magnitude > max) max = magnitude;
+        spectrum[j][i] = magnitude;
+
+        if (magnitude > max) max = magnitude
+      }
     }
 
     for (let i = 0; i < this._size ** 2; i ++) {
-      spectrum[i] = spectrum[i] * 255 / max;
+      for (let j = 0; j < 3; j ++) {
+        spectrum[j][i] = spectrum[j][i] * 255 / max;
+      }
     }
 
     for (let y = 0; y < this._size; y ++) {
       for (let x = 0; x < this._size; x ++) {
         const i = y * this._size + x;
-        const value = spectrum[i];
 
-        imageData.data[i * 4] = 0;
-        imageData.data[i * 4 + 1] = value;
-        imageData.data[i * 4 + 2] = value >> 1;
-        imageData.data[i * 4 + 3] = 255;
+        for (let j = 0; j < 3; j ++) {
+          const magnitude = spectrum[j][i]
+          imageData.data[i * 4 + j] = magnitude;
+        }
       }
     }
     context.putImageData(imageData, 0, 0);
@@ -133,17 +144,18 @@ export default class FourierTransform {
   drawImage(canvas = document.createElement('canvas')) {
     canvas.width = canvas.height = this._size;
     const context = canvas.getContext('2d');
-
     const imageData = context.createImageData(this._size, this._size);
+    imageData.data.fill(255);
+
     for (let y = 0; y < this._size; y ++) {
       for(let x = 0; x < this._size; x ++) {
         const i = y * this._size + x;
-        const value = this._real[i];
 
-        imageData.data[i * 4] = value;
-        imageData.data[i * 4 + 1] = value;
-        imageData.data[i * 4 + 2] = value;
-        imageData.data[i * 4 + 3] = 255;
+        for (let j = 0; j < 3; j ++) {
+          const magnitude = this._real[j][i];
+
+          imageData.data[i * 4 + j] = magnitude;
+        }
       }
     }
     context.putImageData(imageData, 0, 0);
@@ -220,8 +232,10 @@ export default class FourierTransform {
     for (let i = 0; i < this._size; i ++) {
       const reverseI = this._bitReversalTable[i];
       if (i < reverseI) {
-        [real[i], real[reverseI]] = [real[reverseI], real[i]];
-        [imag[i], imag[reverseI]] = [imag[reverseI], imag[i]];
+        for (let j = 0; j < 3; j ++) {
+          [real[j][i], real[j][reverseI]] = [real[j][reverseI], real[j][i]];
+          [imag[j][i], imag[j][reverseI]] = [imag[j][reverseI], imag[j][i]];
+        }
       }
     }
 
@@ -234,13 +248,15 @@ export default class FourierTransform {
         const wr = this._sinCosTable[h + n4];
         const wi = inverse * this._sinCosTable[h];
         for (let k = j; k < this._size; k += (i << 1)) {
-          const ik = k + i;
-          const xr = wr * real[ik] + wi * imag[ik];
-          const xi = wr * imag[ik] - wi * real[ik];
-          real[ik] = real[k] - xr;
-          real[k] += xr;
-          imag[ik] = imag[k] - xi;
-          imag[k] += xi;
+          for (let l = 0; l < 3; l ++) {
+            const ik = k + i;
+            const xr = wr * real[l][ik] + wi * imag[l][ik];
+            const xi = wr * imag[l][ik] - wi * real[l][ik];
+            real[l][ik] = real[l][k] - xr;
+            real[l][k] += xr;
+            imag[l][ik] = imag[l][k] - xi;
+            imag[l][k] += xi;
+          }
         }
         h += d;
       }
@@ -259,10 +275,12 @@ export default class FourierTransform {
         const k = x + yn * this._size;
         const l = xn + y * this._size;
 
-        [this._real[i], this._real[j]] = [this._real[j], this._real[i]];
-        [this._real[k], this._real[l]] = [this._real[l], this._real[k]];
-        [this._imag[i], this._imag[j]] = [this._imag[j], this._imag[i]];
-        [this._imag[k], this._imag[l]] = [this._imag[l], this._imag[k]];
+        for (let m = 0; m < 3; m ++) {
+          [this._real[m][i], this._real[m][j]] = [this._real[m][j], this._real[m][i]];
+          [this._real[m][k], this._real[m][l]] = [this._real[m][l], this._real[m][k]];
+          [this._imag[m][i], this._imag[m][j]] = [this._imag[m][j], this._imag[m][i]];
+          [this._imag[m][k], this._imag[m][l]] = [this._imag[m][l], this._imag[m][k]];
+        }
       }
     }
 
@@ -276,7 +294,10 @@ export default class FourierTransform {
         const r = Math.sqrt(x ** 2 + y ** 2);
         if (r < radius) {
           const i = n2 + (y + n2) * this._size + x;
-          this._real[i] = this._imag[i] = 0;
+          for (let j = 0; j < 3; j ++) {
+            this._real[j][i] = 0;
+            this._imag[j][i] = 0;
+          }
         }
       }
     }
@@ -291,7 +312,10 @@ export default class FourierTransform {
         const r = Math.sqrt(x ** 2 + y ** 2);
         if (r > radius) {
           const i = n2 + (y + n2) * this._size + x;
-          this._real[i] = this._imag[i] = 0;
+          for (let j = 0; j < 3; j ++) {
+            this._real[j][i] = 0;
+            this._imag[j][i] = 0;
+          }
         }
       }
     }
@@ -306,7 +330,10 @@ export default class FourierTransform {
         const r = Math.sqrt(x ** 2 + y ** 2);
         if (r < radius || r > (radius + bandwidth)) {
           const i = n2 + (y + n2) * this._size + x;
-          this._real[i] = this._imag[i] = 0;
+          for (let j = 0; j < 3; j ++) {
+            this._real[j][i] = 0;
+            this._imag[j][i] = 0;
+          }
         }
       }
     }
@@ -330,8 +357,10 @@ export default class FourierTransform {
         }
 
         const i = n2 + (y + n2) * this._size + x;
-        this._real[i] *= value;
-        this._imag[i] *= value;
+        for (let j = 0; j < 3; j ++) {
+          this._real[j][i] *= value;
+          this._imag[j][i] *= value;
+        }
       }
     }
 
