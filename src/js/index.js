@@ -35,21 +35,3 @@ if (module.hot) {
     );
   });
 }
-
-// import { hasWebGLSupportWithExtensions, filter } from 'js/fourierFilter.js';
-// import { loadImage } from 'js/imageUtils.js';
-// import fields from 'img/fields.jpg';
-//
-// function init() {
-//   loadImage(fields).then(image => {
-//     // const array = new Float32Array(720);
-//     // for (let i = 0; i < array.length; i ++) {
-//     //   array[i] = 1 - (i / array.length);
-//     // }
-//     // filterer.filter(array);
-//     const canvas = filter(image, new Float32Array(720).fill(1));
-//     document.getElementById('app').appendChild(canvas);
-//   });
-// };
-//
-// if (hasWebGLSupportWithExtensions(['OES_texture_float'])) init();
