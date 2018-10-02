@@ -45,6 +45,14 @@ function createCanvas(width, height) {
   return canvas;
 }
 
+function createCheckbox(checked) {
+  const checkbox = document.createElement('input');
+  checkbox.setAttribute('type', 'checkbox');
+  checkbox.setAttribute('checked', checked);
+
+  return checkbox;
+}
+
 function appendWithLabel(id, dom, label) {
   const child = document.createElement('div');
   child.style.marginRight = "5px"
@@ -63,6 +71,7 @@ loadImage(imageSrc).then(image => {
   let innerRadius = 100;
   let radiusSize = 100;
   let filterStrength = 1.5;
+  let smooth = true;
 
   const sliderResize = createSlider(0, 1, resize);
   appendWithLabel('sliders', sliderResize, 'resize');
@@ -72,6 +81,8 @@ loadImage(imageSrc).then(image => {
   appendWithLabel('sliders', sliderRadiusSize, 'filter radius size');
   const sliderFilterStrength = createSlider(0, 100, filterStrength);
   appendWithLabel('sliders', sliderFilterStrength, 'filter strength');
+  const smoothCheckbox = createCheckbox(smooth);
+  appendWithLabel('sliders', smoothCheckbox, 'smooth');
 
   const canvasOriginal = createCanvas(image.width, image.height);
   appendWithLabel('original', canvasOriginal, 'Original Image');
@@ -126,10 +137,15 @@ loadImage(imageSrc).then(image => {
     redraw();
   });
 
+  smoothCheckbox.addEventListener('change', event => {
+    smooth = event.target.checked;
+    redraw();
+  });
+
   function redraw() {
     const sx = Math.max(1, Math.round(image.width * resize));
     const sy = Math.max(1, Math.round(image.height * resize));
-    const resizedImage = resizeImage(resizeImage(image, sx, sy), image.width, image.height);
+    const resizedImage = resizeImage(resizeImage(image, sx, sy, smooth), image.width, image.height, smooth);
     canvasResize.getContext('2d').drawImage(resizedImage, 0, 0);
 
     fourierTransform
