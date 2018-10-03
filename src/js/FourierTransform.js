@@ -17,8 +17,8 @@ export default class FourierTransform {
     if (this._size !== image.width) {
       this._size = image.width;
 
-      this._makeBitReversalTable();
-      this._makeCosSinTable();
+      this._bitReversalTable = makeBitReversalTable(this._size);
+      this._sinCosTable = makeSinCosTable(this._size);
     }
 
     const canvas = document.createElement('canvas');
@@ -43,21 +43,7 @@ export default class FourierTransform {
     return this;
   }
 
-  _fft1d(real, imag, inverse) {
-    this._fft(real, imag, inverse ? -1 : 1);
-
-    if (inverse) {
-      const iSize = 1 / this._size;
-      for (let i = 0; i < this._size; i ++) {
-        for (let j = 0; j < 3; j ++) {
-          real[j][i] *= iSize;
-          imag[j][i] *= iSize;
-        }
-      }
-    }
-  }
-
-  fft2d(inverse) {
+  fft(inverse = false) {
     const tempReal = [[], [], []];
     const tempImag = [[], [], []];
     // x-axis
@@ -69,7 +55,9 @@ export default class FourierTransform {
           tempImag[j][x] = this._imag[j][i];
         }
       }
-      this._fft1d(tempReal, tempImag, inverse);
+      for (let i = 0; i < 3; i ++) {
+        fft(this._size, this._bitReversalTable, this._sinCosTable, tempReal[i], tempImag[i], inverse);
+      }
       for (let x = 0; x < this._size; x ++) {
         const i = y * this._size + x;
         for (let j = 0; j < 3; j ++) {
@@ -87,7 +75,9 @@ export default class FourierTransform {
           tempImag[j][y] = this._imag[j][i];
         }
       }
-      this._fft1d(tempReal, tempImag, inverse);
+      for (let i = 0; i < 3; i ++) {
+        fft(this._size, this._bitReversalTable, this._sinCosTable, tempReal[i], tempImag[i], inverse);
+      }
       for (let y = 0; y < this._size; y ++) {
         const i = y * this._size + x;
         for (let j = 0; j < 3; j ++) {
@@ -161,106 +151,6 @@ export default class FourierTransform {
     context.putImageData(imageData, 0, 0);
 
     return canvas;
-  }
-
-  _makeBitReversalTable() {
-    if (typeof Uint8Array !== 'undefined') {
-      if (this._size <= 256) {
-        this._bitReversalTable = new Uint8Array(this._size);
-      } else if (this._size <= 65536) {
-        this._bitReversalTable = new Uint16Array(this._size);
-      } else {
-        this._bitReversalTable = new Uint32Array(this._size);
-      }
-    } else {
-      this._bitReversalTable = [];
-    }
-
-    let j = 0;
-    this._bitReversalTable[0] = 0;
-    for (let i = 1; i < this._size; i ++) {
-      let k = this._size >> 1;
-      while (k <= j) {
-        j -= k;
-        k >>= 1;
-      }
-      j += k;
-
-      this._bitReversalTable[i] = j;
-    }
-  }
-
-  _makeCosSinTable() {
-    if (typeof Float64Array !== 'undefined') {
-      this._sinCosTable = new Float64Array(this._size * 1.25);
-    } else {
-      this._sinCosTable = [];
-    }
-
-    const n2 = this._size >> 1;
-    const n4 = this._size >> 2;
-    const n8 = this._size >> 3;
-    const n2p4 = n2 + n4;
-    let dc = 2 * Math.sin(Math.PI / this._size) ** 2;
-    let ds = Math.sqrt(dc*(2 - dc));
-    let c = this._sinCosTable[n4] = 1;
-    let s = this._sinCosTable[0] = 0;
-    const t = 2 * dc;
-
-    for (let i = 1; i < n8; i ++) {
-      c -= dc;
-      dc += t * c;
-      s += ds;
-      ds -= t * s;
-      this._sinCosTable[i] = s;
-      this._sinCosTable[n4 - i] = c;
-    }
-
-    if (n8 !== 0) {
-      this._sinCosTable[n8] = Math.sqrt(0.5);
-    }
-    for (let i = 0; i < n4; i ++) {
-      this._sinCosTable[n2 - i] = this._sinCosTable[i];
-    }
-    for (let i = 0; i < n2p4; i ++) {
-      this._sinCosTable[i + n2] = -this._sinCosTable[i];
-    }
-  }
-
-  _fft(real, imag, inverse) {
-    // bit reversal
-    for (let i = 0; i < this._size; i ++) {
-      const reverseI = this._bitReversalTable[i];
-      if (i < reverseI) {
-        for (let j = 0; j < 3; j ++) {
-          [real[j][i], real[j][reverseI]] = [real[j][reverseI], real[j][i]];
-          [imag[j][i], imag[j][reverseI]] = [imag[j][reverseI], imag[j][i]];
-        }
-      }
-    }
-
-    // butterfly operation
-    const n4 = this._size >> 2;
-    for (let i = 1; i < this._size; i <<= 1) {
-      let h = 0;
-      const d = this._size / (i << 1);
-      for (let j = 0; j < i; j ++) {
-        const wr = this._sinCosTable[h + n4];
-        const wi = inverse * this._sinCosTable[h];
-        for (let k = j; k < this._size; k += (i << 1)) {
-          for (let l = 0; l < 3; l ++) {
-            const ik = k + i;
-            const xr = wr * real[l][ik] + wi * imag[l][ik];
-            const xi = wr * imag[l][ik] - wi * real[l][ik];
-            real[l][ik] = real[l][k] - xr;
-            real[l][k] += xr;
-            imag[l][ik] = imag[l][k] - xi;
-            imag[l][k] += xi;
-          }
-        }
-        h += d;
-      }
-    }
   }
 
   swap() {
@@ -365,5 +255,115 @@ export default class FourierTransform {
     }
 
     return this;
+  }
+}
+
+function makeBitReversalTable(size) {
+  let bitReversalTable
+  if (typeof Uint8Array !== 'undefined') {
+    if (size <= 256) {
+      bitReversalTable = new Uint8Array(size);
+    } else if (size <= 65536) {
+      bitReversalTable = new Uint16Array(size);
+    } else {
+      bitReversalTable = new Uint32Array(size);
+    }
+  } else {
+    bitReversalTable = [];
+  }
+
+  let j = 0;
+  bitReversalTable[0] = 0;
+  for (let i = 1; i < size; i ++) {
+    let k = size >> 1;
+    while (k <= j) {
+      j -= k;
+      k >>= 1;
+    }
+    j += k;
+
+    bitReversalTable[i] = j;
+  }
+
+  return bitReversalTable;
+}
+
+function makeSinCosTable(size) {
+  let sinCosTable;
+  if (typeof Float64Array !== 'undefined') {
+    sinCosTable = new Float64Array(size * 1.25);
+  } else {
+    sinCosTable = [];
+  }
+
+  const n2 = size >> 1;
+  const n4 = size >> 2;
+  const n8 = size >> 3;
+  const n2p4 = n2 + n4;
+  let dc = 2 * Math.sin(Math.PI / size) ** 2;
+  let ds = Math.sqrt(dc*(2 - dc));
+  let c = sinCosTable[n4] = 1;
+  let s = sinCosTable[0] = 0;
+  const t = 2 * dc;
+
+  for (let i = 1; i < n8; i ++) {
+    c -= dc;
+    dc += t * c;
+    s += ds;
+    ds -= t * s;
+    sinCosTable[i] = s;
+    sinCosTable[n4 - i] = c;
+  }
+
+  if (n8 !== 0) {
+    sinCosTable[n8] = Math.sqrt(0.5);
+  }
+  for (let i = 0; i < n4; i ++) {
+    sinCosTable[n2 - i] = sinCosTable[i];
+  }
+  for (let i = 0; i < n2p4; i ++) {
+    sinCosTable[i + n2] = -sinCosTable[i];
+  }
+
+  return sinCosTable;
+}
+
+function fft(size, bitReversalTable, sinCosTable, imag, real, inverse) {
+  // bit reversal
+  for (let i = 0; i < size; i ++) {
+    const reverseI = bitReversalTable[i];
+    if (i < reverseI) {
+      [real[i], real[reverseI]] = [real[reverseI], real[i]];
+      [imag[i], imag[reverseI]] = [imag[reverseI], imag[i]];
+    }
+  }
+
+  // butterfly operation
+  const n4 = size >> 2;
+  for (let i = 1; i < size; i <<= 1) {
+    let h = 0;
+    const d = size / (i << 1);
+    for (let j = 0; j < i; j ++) {
+      const wr = sinCosTable[h + n4];
+      const wi = inverse ? -sinCosTable[h] : sinCosTable[h];
+      for (let k = j; k < size; k += (i << 1)) {
+        const ik = k + i;
+        const xr = wr * real[ik] + wi * imag[ik];
+        const xi = wr * imag[ik] - wi * real[ik];
+        real[ik] = real[k] - xr;
+        real[k] += xr;
+        imag[ik] = imag[k] - xi;
+        imag[k] += xi;
+      }
+      h += d;
+    }
+  }
+
+  if (inverse) {
+    const iSize = 1 / size;
+    for (let i = 0; i < size; i ++) {
+      real[i] *= iSize;
+      imag[i] *= iSize;
+    }
   }
 }

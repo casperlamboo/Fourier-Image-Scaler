@@ -2,7 +2,7 @@ import imageSrc from 'img/256.png';
 import { loadImage, resizeImage } from 'js/imageUtils.js';
 import FourierTransform from 'js/FourierTransform.js';
 
-const DOM = `
+document.body.innerHTML = `
   <div>
     <div style="display: flex;">
       <div>
@@ -21,9 +21,7 @@ const DOM = `
       </div>
     </div>
   </div>
-`;
-
-document.body.innerHTML = DOM;
+`;;
 
 function createSlider(min, max, def) {
   const slider = document.createElement('input');
@@ -104,7 +102,7 @@ loadImage(imageSrc).then(image => {
   const fourierTransform = new FourierTransform();
   fourierTransform
     .init(canvasOriginal)
-    .fft2d(false)
+    .fft(false)
     .swap();
 
   fourierTransform.drawSpectrum(true, canvasSpectrumOriginal);
@@ -112,7 +110,7 @@ loadImage(imageSrc).then(image => {
   fourierTransform.drawSpectrum(true, canvasSpectrumTransformed);
   fourierTransform
     .swap()
-    .fft2d(true)
+    .fft(true)
     .drawImage(canvasSpectrumReconstructed);
 
   redraw();
@@ -150,7 +148,7 @@ loadImage(imageSrc).then(image => {
 
     fourierTransform
       .init(resizedImage)
-      .fft2d(false)
+      .fft(false)
       .swap()
       .drawSpectrum(true, canvasSpectrumResize);
 
@@ -160,7 +158,7 @@ loadImage(imageSrc).then(image => {
 
       fourierTransform
         .swap()
-        .fft2d(true)
+        .fft(true)
         .drawImage(canvasSpectrumReconstructed);
   }
 });
