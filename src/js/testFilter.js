@@ -113,52 +113,68 @@ loadImage(imageSrc).then(image => {
     .fft(true)
     .drawImage(canvasSpectrumReconstructed);
 
-  redraw();
+  redraw(false);
 
   sliderResize.addEventListener('input', event => {
     resize = parseFloat(event.target.value);
-    redraw();
+    redraw(true);
+  });
+  sliderResize.addEventListener('change', event => {
+    resize = parseFloat(event.target.value);
+    redraw(false);
   });
 
   sliderInnerRadius.addEventListener('input', event => {
     innerRadius = parseFloat(event.target.value);
-    redraw();
+    redraw(true);
+  });
+  sliderInnerRadius.addEventListener('change', event => {
+    innerRadius = parseFloat(event.target.value);
+    redraw(false);
   });
 
   sliderRadiusSize.addEventListener('input', event => {
     radiusSize = parseFloat(event.target.value);
-    redraw();
+    redraw(true);
+  });
+  sliderRadiusSize.addEventListener('change', event => {
+    radiusSize = parseFloat(event.target.value);
+    redraw(false);
   });
 
   sliderFilterStrength.addEventListener('input', event => {
     filterStrength = parseFloat(event.target.value);
-    redraw();
+    redraw(true);
+  });
+  sliderFilterStrength.addEventListener('change', event => {
+    filterStrength = parseFloat(event.target.value);
+    redraw(false);
   });
 
   smoothCheckbox.addEventListener('change', event => {
     smooth = event.target.checked;
-    redraw();
+    redraw(false);
   });
 
-  function redraw() {
+  function redraw(grayScale) {
     const sx = Math.max(1, Math.round(image.width * resize));
     const sy = Math.max(1, Math.round(image.height * resize));
     const resizedImage = resizeImage(resizeImage(image, sx, sy, smooth), image.width, image.height, smooth);
     canvasResize.getContext('2d').drawImage(resizedImage, 0, 0);
 
     fourierTransform
-      .init(resizedImage)
-      .fft(false)
-      .swap()
-      .drawSpectrum(true, canvasSpectrumResize);
+      .init(resizedImage, grayScale)
+      .fft(false, grayScale)
+      .swap(grayScale)
+      .drawSpectrum(true, canvasSpectrumResize, grayScale);
 
       fourierTransform
-        .highFrequencyAmplifier(innerRadius, radiusSize, filterStrength)
-        .drawSpectrum(true, canvasSpectrumTransformed);
+        .highFrequencyAmplifier(innerRadius, radiusSize, filterStrength, grayScale)
+        .drawSpectrum(true, canvasSpectrumTransformed, grayScale);
 
       fourierTransform
-        .swap()
-        .fft(true)
-        .drawImage(canvasSpectrumReconstructed);
+        .swap(grayScale)
+        .fft(true, grayScale)
+        .drawImage(canvasSpectrumReconstructed, grayScale);
   }
 });
