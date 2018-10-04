@@ -48,11 +48,8 @@ function createSlider(min, max, def) {
   return slider;
 }
 
-function createCanvas(width, height) {
+function createCanvas() {
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-
   return canvas;
 }
 
@@ -64,13 +61,27 @@ function createCheckbox(checked) {
   return checkbox;
 }
 
-function appendWithLabel(id, dom, label) {
 function createButton(name) {
   const button = document.createElement('button');
   button.innerHTML = name;
 
   return button;
 }
+
+function createSelect(options) {
+  const select = document.createElement('select');
+
+  for (const { name, value } of options) {
+    const option = document.createElement('option');
+    option.innerHTML = name;
+    option.setAttribute('value', value);
+    select.appendChild(option);
+  }
+
+  return select;
+}
+
+function appendWithLabel(id, doms, label) {
   const child = document.createElement('div');
   child.style.marginRight = "5px"
 
@@ -78,7 +89,9 @@ function createButton(name) {
   p.innerHTML = label;
 
   child.appendChild(p);
-  child.appendChild(dom);
+  for (const dom of doms) {
+    child.appendChild(dom);
+  }
 
   document.getElementById(id).appendChild(child);
 }
@@ -90,53 +103,40 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   let resize = 1;
   let innerRadius = 100;
   let radiusSize = 100;
-  let filterStrength = 1.5;
+  let filterStrength = 1;
   let smooth = true;
 
   const previousButton = createButton('Previous Image');
   const nextButton = createButton('Next Image');
   appendWithLabel('sliders', [previousButton, nextButton], 'Image');
+
+  const algoritmSelect = createSelect(resizeAlgorithms.map(({ algorithm, name }) => ({ value: algorithm, name })));
+  appendWithLabel('sliders', [algoritmSelect], 'Resize Algorithm');
+
   const sliderResize = createSlider(0, 1, resize);
-  appendWithLabel('sliders', sliderResize, 'resize');
+  appendWithLabel('sliders', [sliderResize], 'resize');
   const sliderInnerRadius = createSlider(0, 300, innerRadius);
-  appendWithLabel('sliders', sliderInnerRadius, 'filter inner radius');
+  appendWithLabel('sliders', [sliderInnerRadius], 'filter inner radius');
   const sliderRadiusSize = createSlider(0, 100, radiusSize);
-  appendWithLabel('sliders', sliderRadiusSize, 'filter radius size');
+  appendWithLabel('sliders', [sliderRadiusSize], 'filter radius size');
   const sliderFilterStrength = createSlider(0, 100, filterStrength);
-  appendWithLabel('sliders', sliderFilterStrength, 'filter strength');
+  appendWithLabel('sliders', [sliderFilterStrength], 'filter strength');
   const smoothCheckbox = createCheckbox(smooth);
-  appendWithLabel('sliders', smoothCheckbox, 'smooth');
+  appendWithLabel('sliders', [smoothCheckbox], 'smooth');
 
-  const canvasOriginal = createCanvas(image.width, image.height);
-  appendWithLabel('original', canvasOriginal, 'Original Image');
-  const canvasSpectrumOriginal = createCanvas(image.width, image.height);
-  appendWithLabel('original', canvasSpectrumOriginal, 'FFT of Original Image');
+  const canvasOriginal = createCanvas();
+  appendWithLabel('original', [canvasOriginal], 'Original Image');
+  const canvasSpectrumOriginal = createCanvas();
+  appendWithLabel('original', [canvasSpectrumOriginal], 'FFT of Original Image');
 
-  const canvasResize = createCanvas(image.width, image.height);
-  appendWithLabel('transform', canvasResize, 'Resized Image');
-  const canvasSpectrumResize = createCanvas(image.width, image.height);
-  appendWithLabel('transform', canvasSpectrumResize, 'FTT of Resized Image');
-  const canvasSpectrumTransformed = createCanvas(image.width, image.height);
-  appendWithLabel('transform', canvasSpectrumTransformed, 'Edited FFT');
-  const canvasSpectrumReconstructed = createCanvas(image.width, image.height);
-  appendWithLabel('transform', canvasSpectrumReconstructed, 'Reconstructed Image');
-
-  canvasOriginal.getContext('2d').drawImage(image, 0, 0);
-  canvasResize.getContext('2d').drawImage(image, 0, 0);
-
-  const fourierTransform = new FourierTransform();
-  fourierTransform
-    .init(canvasOriginal)
-    .fft(false)
-    .swap();
-
-  fourierTransform.drawSpectrum(true, canvasSpectrumOriginal);
-  fourierTransform.drawSpectrum(true, canvasSpectrumResize);
-  fourierTransform.drawSpectrum(true, canvasSpectrumTransformed);
-  fourierTransform
-    .swap()
-    .fft(true)
-    .drawImage(canvasSpectrumReconstructed);
+  const canvasResize = createCanvas();
+  appendWithLabel('transform', [canvasResize], 'Resized Image');
+  const canvasSpectrumResize = createCanvas();
+  appendWithLabel('transform', [canvasSpectrumResize], 'FTT of Resized Image');
+  const canvasSpectrumTransformed = createCanvas();
+  appendWithLabel('transform', [canvasSpectrumTransformed], 'Edited FFT');
+  const canvasSpectrumReconstructed = createCanvas();
+  appendWithLabel('transform', [canvasSpectrumReconstructed], 'Reconstructed Image');
 
   redraw(false);
 
@@ -191,6 +191,11 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
     redraw(false);
   });
 
+  algoritmSelect.addEventListener('change', event => {
+    algorithm = event.target.value;
+    redraw(false);
+  });
+
   function redraw(grayScale) {
     canvasOriginal.width = canvasResize.width = image.width;
     canvasOriginal.height = canvasResize.height = image.height;
@@ -214,8 +219,11 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
 
     const sx = Math.max(1, Math.round(image.width * resize));
     const sy = Math.max(1, Math.round(image.height * resize));
-    const resizedImage = resizeImage(resizeImage(image, sx, sy, smooth), image.width, image.height, smooth);
-    canvasResize.getContext('2d').drawImage(resizedImage, 0, 0);
+
+    const imageData = canvasOriginal.getContext('2d').getImageData(0, 0, image.width, image.height);
+    const downSampled = resizeImage(imageData, sx, sy, algorithm);
+    const upSampled = resizeImage(downSampled, image.width, image.height, algorithm);
+    canvasResize.getContext('2d').putImageData(upSampled, 0, 0);
 
     fourierTransform
       .init(canvasResize, grayScale)
