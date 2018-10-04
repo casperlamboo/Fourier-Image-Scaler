@@ -34,7 +34,7 @@ document.body.innerHTML = `
       </div>
     </div>
   </div>
-`;;
+`;
 
 function createSlider(min, max, def) {
   const slider = document.createElement('input');
@@ -51,14 +51,6 @@ function createSlider(min, max, def) {
 function createCanvas() {
   const canvas = document.createElement('canvas');
   return canvas;
-}
-
-function createCheckbox(checked) {
-  const checkbox = document.createElement('input');
-  checkbox.setAttribute('type', 'checkbox');
-  checkbox.setAttribute('checked', checked);
-
-  return checkbox;
 }
 
 function createButton(name) {
@@ -104,7 +96,6 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   let innerRadius = 100;
   let radiusSize = 100;
   let filterStrength = 1;
-  let smooth = true;
 
   const previousButton = createButton('Previous Image');
   const nextButton = createButton('Next Image');
@@ -121,8 +112,6 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   appendWithLabel('sliders', [sliderRadiusSize], 'filter radius size');
   const sliderFilterStrength = createSlider(0, 100, filterStrength);
   appendWithLabel('sliders', [sliderFilterStrength], 'filter strength');
-  const smoothCheckbox = createCheckbox(smooth);
-  appendWithLabel('sliders', [smoothCheckbox], 'smooth');
 
   const canvasOriginal = createCanvas();
   appendWithLabel('original', [canvasOriginal], 'Original Image');
@@ -150,44 +139,39 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
     redraw(false);
   });
 
-  sliderResize.addEventListener('input', event => {
-    resize = parseFloat(event.target.value);
-    redraw(true);
-  });
+  // sliderResize.addEventListener('input', event => {
+  //   resize = parseFloat(event.target.value);
+  //   redraw(true);
+  // });
   sliderResize.addEventListener('change', event => {
     resize = parseFloat(event.target.value);
     redraw(false);
   });
 
-  sliderInnerRadius.addEventListener('input', event => {
-    innerRadius = parseFloat(event.target.value);
-    redraw(true);
-  });
+  // sliderInnerRadius.addEventListener('input', event => {
+  //   innerRadius = parseFloat(event.target.value);
+  //   redraw(true);
+  // });
   sliderInnerRadius.addEventListener('change', event => {
     innerRadius = parseFloat(event.target.value);
     redraw(false);
   });
 
-  sliderRadiusSize.addEventListener('input', event => {
-    radiusSize = parseFloat(event.target.value);
-    redraw(true);
-  });
+  // sliderRadiusSize.addEventListener('input', event => {
+  //   radiusSize = parseFloat(event.target.value);
+  //   redraw(true);
+  // });
   sliderRadiusSize.addEventListener('change', event => {
     radiusSize = parseFloat(event.target.value);
     redraw(false);
   });
 
-  sliderFilterStrength.addEventListener('input', event => {
-    filterStrength = parseFloat(event.target.value);
-    redraw(true);
-  });
+  // sliderFilterStrength.addEventListener('input', event => {
+  //   filterStrength = parseFloat(event.target.value);
+  //   redraw(true);
+  // });
   sliderFilterStrength.addEventListener('change', event => {
     filterStrength = parseFloat(event.target.value);
-    redraw(false);
-  });
-
-  smoothCheckbox.addEventListener('change', event => {
-    smooth = event.target.checked;
     redraw(false);
   });
 
