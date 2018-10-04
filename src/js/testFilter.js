@@ -1,6 +1,19 @@
-import imageSrc from 'img/256.png';
+import imageSrc1 from 'img/256.png';
+import imageSrc2 from 'img/desert.jpg';
+import imageSrc3 from 'img/fields.jpg';
+import imageSrc4 from 'img/milky.jpg';
+import imageSrc5 from 'img/valley.jpg';
 import { loadImage, resizeImage } from 'js/imageUtils.js';
 import FourierTransform from 'js/FourierTransform.js';
+
+const imageSrcs = [imageSrc1, imageSrc2, imageSrc3, imageSrc4, imageSrc5];
+const resizeAlgorithms = [
+  { algorithm: 'nearestNeighbor', name: 'Nearest Neighbor' },
+  { algorithm: 'bilinearInterpolation', name: 'Bilinear Interpolation' },
+  { algorithm: 'bicubicInterpolation', name: 'Bicubic Interpolation' },
+  { algorithm: 'hermiteInterpolation', name: 'Hermite Interpolation' },
+  { algorithm: 'bezierInterpolation', name: 'Bezier Interpolation' }
+];
 
 document.body.innerHTML = `
   <div>
@@ -52,6 +65,12 @@ function createCheckbox(checked) {
 }
 
 function appendWithLabel(id, dom, label) {
+function createButton(name) {
+  const button = document.createElement('button');
+  button.innerHTML = name;
+
+  return button;
+}
   const child = document.createElement('div');
   child.style.marginRight = "5px"
 
@@ -64,13 +83,19 @@ function appendWithLabel(id, dom, label) {
   document.getElementById(id).appendChild(child);
 }
 
-loadImage(imageSrc).then(image => {
+Promise.all(imageSrcs.map(loadImage)).then(images => {
+  let [image] = images;
+  let [{ algorithm }] = resizeAlgorithms;
+
   let resize = 1;
   let innerRadius = 100;
   let radiusSize = 100;
   let filterStrength = 1.5;
   let smooth = true;
 
+  const previousButton = createButton('Previous Image');
+  const nextButton = createButton('Next Image');
+  appendWithLabel('sliders', [previousButton, nextButton], 'Image');
   const sliderResize = createSlider(0, 1, resize);
   appendWithLabel('sliders', sliderResize, 'resize');
   const sliderInnerRadius = createSlider(0, 300, innerRadius);
@@ -115,6 +140,16 @@ loadImage(imageSrc).then(image => {
 
   redraw(false);
 
+  nextButton.addEventListener('click', () => {
+    image = images[(images.indexOf(image) + 1) % images.length];
+    redraw(false);
+  });
+
+  previousButton.addEventListener('click', () => {
+    image = images[(images.indexOf(image) - 1 + images.length) % images.length];
+    redraw(false);
+  });
+
   sliderResize.addEventListener('input', event => {
     resize = parseFloat(event.target.value);
     redraw(true);
@@ -157,13 +192,33 @@ loadImage(imageSrc).then(image => {
   });
 
   function redraw(grayScale) {
+    canvasOriginal.width = canvasResize.width = image.width;
+    canvasOriginal.height = canvasResize.height = image.height;
+
+    canvasOriginal.getContext('2d').drawImage(image, 0, 0);
+    canvasResize.getContext('2d').drawImage(image, 0, 0);
+
+    const fourierTransform = new FourierTransform();
+    fourierTransform
+      .init(canvasOriginal)
+      .fft(false)
+      .swap();
+
+    fourierTransform.drawSpectrum(true, canvasSpectrumOriginal);
+    fourierTransform.drawSpectrum(true, canvasSpectrumResize);
+    fourierTransform.drawSpectrum(true, canvasSpectrumTransformed);
+    fourierTransform
+      .swap()
+      .fft(true)
+      .drawImage(canvasSpectrumReconstructed);
+
     const sx = Math.max(1, Math.round(image.width * resize));
     const sy = Math.max(1, Math.round(image.height * resize));
     const resizedImage = resizeImage(resizeImage(image, sx, sy, smooth), image.width, image.height, smooth);
     canvasResize.getContext('2d').drawImage(resizedImage, 0, 0);
 
     fourierTransform
-      .init(resizedImage, grayScale)
+      .init(canvasResize, grayScale)
       .fft(false, grayScale)
       .swap(grayScale)
       .drawSpectrum(true, canvasSpectrumResize, grayScale);
