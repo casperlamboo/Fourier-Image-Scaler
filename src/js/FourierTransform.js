@@ -114,7 +114,8 @@ export default class FourierTransform {
 
     for (let i = 0; i < this._size ** 2; i ++) {
       for (let j = 0; j < (grayScale ? 1 : 3); j ++) {
-        spectrum[j][i] = spectrum[j][i] * 255 / max;
+        // spectrum[j][i] = spectrum[j][i] * 255 / max;
+        spectrum[j][i] = spectrum[j][i] * 255 / 16;
       }
     }
 
@@ -248,7 +249,7 @@ export default class FourierTransform {
     return this;
   }
 
-  highFrequencyAmplifier(radius, radiusSize, level, grayScale = false) {
+  highFrequencyAmplifier(radius, radiusSize, grayScale = false) {
     const n2 = this._size >> 1;
     for (let y =- n2; y < n2; y ++) {
       for (let x =- n2; x < n2; x ++) {
@@ -256,11 +257,11 @@ export default class FourierTransform {
 
         let value;
         if (r < radius) {
-          continue;
+          value = 0;
         } else if (r > radius + radiusSize) {
-          value = level;
+          value = 1;
         } else {
-          value = ((r - radius) / radiusSize) * (level - 1) + 1;
+          value = cosLerp((r - radius) / radiusSize);
         }
 
         const i = n2 + (y + n2) * this._size + x;
@@ -271,6 +272,46 @@ export default class FourierTransform {
       }
     }
 
+    return this;
+  }
+
+  window(fallOfSize, grayScale = false) {
+    for (let y = 0; y < this._size; y ++) {
+      for (let x = 0; x < this._size; x ++) {
+        const i = y * this._size + x;
+
+        const l = x < fallOfSize;
+        const r = x > (this._size - fallOfSize);
+        const t = y < fallOfSize;
+        const b = y > (this._size - fallOfSize);
+
+        let value;
+        if (l && t) {
+          value = 1 - (Math.sqrt((fallOfSize - x) ** 2 + (fallOfSize - y) ** 2) / fallOfSize);
+        } else if (t && r) {
+          value = 1 - (Math.sqrt((this._size - fallOfSize - x) ** 2 + (fallOfSize - y) ** 2) / fallOfSize);
+        } else if (b && r) {
+          value = 1 - (Math.sqrt((this._size - fallOfSize - x) ** 2 + (this._size - fallOfSize - y) ** 2) / fallOfSize);
+        } else if (b && l) {
+          value = 1 - (Math.sqrt((fallOfSize - x) ** 2 + (this._size - fallOfSize - y) ** 2) / fallOfSize);
+        } else if (t) {
+          value = y / fallOfSize;
+        } else if (r) {
+          value = (this._size - x) / fallOfSize;
+        } else if (b) {
+          value = (this._size - y) / fallOfSize;
+        } else if (l) {
+          value = x / fallOfSize;
+        } else {
+          value = 1;
+        }
+
+        for (let j = 0; j < (grayScale ? 1 : 3); j ++) {
+          this._real[j][i] *= cosLerp(value);
+          this._imag[j][i] *= cosLerp(value);
+        }
+      }
+    }
     return this;
   }
 }
@@ -382,5 +423,16 @@ function fft(size, bitReversalTable, sinCosTable, imag, real, inverse) {
       real[i] *= iSize;
       imag[i] *= iSize;
     }
+  }
+}
+
+function cosLerp(x) {
+  if (x < 0) {
+    return 0;
+  } else if (x > 1) {
+    return 1;
+  } else {
+    // return x;
+    return (-Math.cos(x * Math.PI) * 0.5) + 0.5;
   }
 }

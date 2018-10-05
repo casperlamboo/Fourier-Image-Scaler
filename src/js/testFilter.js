@@ -92,10 +92,8 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   let [image] = images;
   let [{ algorithm }] = resizeAlgorithms;
 
-  let resize = 1;
-  let innerRadius = 100;
-  let radiusSize = 100;
-  let filterStrength = 1;
+  let resize = 0.5;
+  let radius = 10;
 
   const previousButton = createButton('Previous Image');
   const nextButton = createButton('Next Image');
@@ -106,12 +104,8 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
 
   const sliderResize = createSlider(0, 1, resize);
   appendWithLabel('sliders', [sliderResize], 'resize');
-  const sliderInnerRadius = createSlider(0, 300, innerRadius);
-  appendWithLabel('sliders', [sliderInnerRadius], 'filter inner radius');
-  const sliderRadiusSize = createSlider(0, 100, radiusSize);
-  appendWithLabel('sliders', [sliderRadiusSize], 'filter radius size');
-  const sliderFilterStrength = createSlider(0, 100, filterStrength);
-  appendWithLabel('sliders', [sliderFilterStrength], 'filter strength');
+  const sliderRadius = createSlider(0, 300, radius);
+  appendWithLabel('sliders', [sliderRadius], 'High Pass Filter radius');
 
   const canvasOriginal = createCanvas();
   appendWithLabel('original', [canvasOriginal], 'Original Image');
@@ -126,6 +120,8 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   appendWithLabel('transform', [canvasSpectrumTransformed], 'Edited FFT');
   const canvasSpectrumReconstructed = createCanvas();
   appendWithLabel('transform', [canvasSpectrumReconstructed], 'Reconstructed Image');
+  const canvasResult = createCanvas();
+  appendWithLabel('transform', [canvasResult], 'Reconstructed Image + Resized Image (overlay)');
 
   redraw(false);
 
@@ -148,41 +144,18 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
     redraw(false);
   });
 
-  // sliderInnerRadius.addEventListener('input', event => {
-  //   innerRadius = parseFloat(event.target.value);
+  // sliderRadius.addEventListener('input', event => {
+  //   radius = parseFloat(event.target.value);
   //   redraw(true);
   // });
-  sliderInnerRadius.addEventListener('change', event => {
-    innerRadius = parseFloat(event.target.value);
-    redraw(false);
-  });
-
-  // sliderRadiusSize.addEventListener('input', event => {
-  //   radiusSize = parseFloat(event.target.value);
-  //   redraw(true);
-  // });
-  sliderRadiusSize.addEventListener('change', event => {
-    radiusSize = parseFloat(event.target.value);
-    redraw(false);
-  });
-
-  // sliderFilterStrength.addEventListener('input', event => {
-  //   filterStrength = parseFloat(event.target.value);
-  //   redraw(true);
-  // });
-  sliderFilterStrength.addEventListener('change', event => {
-    filterStrength = parseFloat(event.target.value);
-    redraw(false);
-  });
-
-  algoritmSelect.addEventListener('change', event => {
-    algorithm = event.target.value;
+  sliderRadius.addEventListener('change', event => {
+    radius = parseFloat(event.target.value);
     redraw(false);
   });
 
   function redraw(grayScale) {
-    canvasOriginal.width = canvasResize.width = image.width;
-    canvasOriginal.height = canvasResize.height = image.height;
+    canvasResult.width = canvasOriginal.width = canvasResize.width = image.width;
+    canvasResult.height = canvasOriginal.height = canvasResize.height = image.height;
 
     canvasOriginal.getContext('2d').drawImage(image, 0, 0);
     canvasResize.getContext('2d').drawImage(image, 0, 0);
@@ -216,12 +189,32 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
       .drawSpectrum(true, canvasSpectrumResize, grayScale);
 
       fourierTransform
-        .highFrequencyAmplifier(innerRadius, radiusSize, filterStrength, grayScale)
+        .highPassFilter(radius, grayScale)
         .drawSpectrum(true, canvasSpectrumTransformed, grayScale);
 
       fourierTransform
         .swap(grayScale)
         .fft(true, grayScale)
         .drawImage(canvasSpectrumReconstructed, grayScale);
+
+      const imageDataOriginal = canvasResize
+        .getContext('2d')
+        .getImageData(0, 0, image.width, image.height);
+
+      const imageDataEdges = canvasSpectrumReconstructed
+        .getContext('2d')
+        .getImageData(0, 0, image.width, image.height);
+
+      const targetImageData = canvasResult
+        .getContext('2d')
+        .getImageData(0, 0, image.width, image.height);
+
+      for (let i = 0; i < targetImageData.data.length; i ++) {
+        targetImageData.data[i] = imageDataOriginal.data[i] + imageDataEdges.data[i];
+      }
+
+      canvasResult
+        .getContext('2d')
+        .putImageData(targetImageData, 0, 0);
   }
 });
