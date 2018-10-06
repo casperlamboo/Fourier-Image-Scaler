@@ -7,12 +7,20 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Stepper from '@material-ui/core/Stepper';
 import Step from '@material-ui/core/Step';
 import StepLabel from '@material-ui/core/StepLabel';
-import fields from 'img/fields.jpg';
-import desert from 'img/desert.jpg';
 import milky from 'img/milky.jpg';
 import valley from 'img/valley.jpg';
+import desert from 'img/desert.jpg';
+import fields from 'img/fields.jpg';
+import { loadImage, resizeImage } from 'js/imageUtils.js';
+import FourierTransform from 'js/FourierTransform.js';
 
-const IMAGES = [fields, desert, milky, valley];
+const IMAGES = {
+  '1.jpeg': milky,
+  '2.jpeg': valley,
+  '3.jpeg': desert,
+  '4.jpeg': fields
+};
+const URL = 'https://php5naar7.nl/images.php?fetchImage';
 const SHARPNESS_BUTTONS = [
   { key: '-2', text: 'Left is a lot sharper then Right', },
   { key: '-1', text: 'Left is a bit sharper then Right', },
@@ -20,7 +28,6 @@ const SHARPNESS_BUTTONS = [
   { key: '1', text: 'Right is a bit sharper then Left', },
   { key: '2', text: 'Right is a lot sharper then Left', }
 ];
-
 const ARTEFACTS_BUTTONS = [
   { key: '-2', text: 'Left has a lot more artefacts then Right' },
   { key: '-1', text: 'Left has a bit more artefacts then Right' },
@@ -28,6 +35,7 @@ const ARTEFACTS_BUTTONS = [
   { key: '1', text: 'Right has a bit more artefacts then Left' },
   { key: '2', text: 'Right has a lot more artefacts then Left' }
 ];
+const IMAGES_MAP = new WeakMap();
 
 const style = {
   button: {
@@ -63,8 +71,38 @@ class App extends Component {
   state = {
     step: 0,
     sharpness: null,
-    artefacts: null
+    artefacts: null,
+    data: false
   };
+
+  constructor(props) {
+    super(props);
+
+    new Promise(resolve => setTimeout(() => {
+      resolve([
+        { filename: '1.jpeg', filterStrength: 100, resized: 1 },
+        { filename: '1.jpeg', filterStrength: 100, resized: 0.5 },
+        { filename: '1.jpeg', filterStrength: 100, resized: 0.25 },
+        { filename: '1.jpeg', filterStrength: 20, resized: 1 },
+        { filename: '1.jpeg', filterStrength: 20, resized: 0.5 },
+        { filename: '1.jpeg', filterStrength: 20, resized: 0.25 },
+        { filename: '1.jpeg', filterStrength: 30, resized: 1 },
+        { filename: '1.jpeg', filterStrength: 30, resized: 0.5 },
+        { filename: '1.jpeg', filterStrength: 30, resized: 0.25 },
+        { filename: '1.jpeg', filterStrength: 50, resized: 1 },
+        { filename: '1.jpeg', filterStrength: 50, resized: 0.5 },
+        { filename: '1.jpeg', filterStrength: 50, resized: 0.25 }
+      ]);
+    }, 1000)).then(data => {
+      Promise.all(data.map(({ filename, ...args }) => {
+        return loadImage(IMAGES[filename]).then(image => {
+          return { ...args, image, filename }
+        });
+      })).then(data => {
+        this.setState({ data })
+      });
+    });
+  }
 
   rate() {
     const { history } = this.props;
@@ -84,16 +122,27 @@ class App extends Component {
 
   render() {
     const { classes } = this.props;
-    const { step, sharpness, artefacts } = this.state;
+    const { step, sharpness, artefacts, data } = this.state;
+
+    if (!data) {
+      return (<Body>
+        <CircularProgress style={{ margin: '0 auto', display: 'block' }} />
+      </Body>);
+    }
+
+    if (!IMAGES_MAP.has(data[step])) {
+      IMAGES_MAP.set(data[step], createImages(data[step]));
+    }
+    const { originalImage, editedImage } = IMAGES_MAP.get(data[step]);
 
     return (
       <Body>
         <Stepper activeStep={step}>
-          {IMAGES.map((_, i) => (<Step key={i}><StepLabel /></Step>))}
+          {data.map((_, i) => (<Step key={i}><StepLabel /></Step>))}
         </Stepper>
         <div className={classes.imageBar}>
-          <img src={IMAGES[step]} />
-          <img src={IMAGES[step]} />
+          <img src={originalImage} />
+          <img src={editedImage} />
         </div>
         <div className={classes.buttonBar}>
           <div className={classes.buttonContainer}>
@@ -125,6 +174,42 @@ class App extends Component {
       </Body>
     );
   }
+}
+
+const fourierTransform = new FourierTransform();
+function createImages({ filename, filterStrength, resized, image }) {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext('2d');
+
+  context.drawImage(image, 0, 0);
+
+  const originalImage = canvas.toDataURL();
+
+  const sx = Math.max(1, Math.round(image.width * resized));
+  const sy = Math.max(1, Math.round(image.height * resized));
+
+  const imageData = context.getImageData(0, 0, image.width, image.height);
+  const downSampled = resizeImage(imageData, sx, sy, 'bilinearInterpolation');
+  const upSampled = resizeImage(downSampled, image.width, image.height, 'bilinearInterpolation');
+  context.putImageData(upSampled, 0, 0);
+
+  const innerRadius = image.width * resized;
+  const radiusSize = image.width * resized;
+
+  fourierTransform
+    .init(canvas)
+    .fft(false)
+    .swap()
+    .highFrequencyAmplifier(innerRadius, radiusSize, filterStrength)
+    .swap()
+    .fft(true)
+    .drawImage(canvas);
+
+  const editedImage = canvas.toDataURL();
+
+  return { originalImage, editedImage };
 }
 
 export default injectSheet(style)(App);
