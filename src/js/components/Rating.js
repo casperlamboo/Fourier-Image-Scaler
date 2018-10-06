@@ -12,14 +12,37 @@ import desert from 'img/desert.jpg';
 import milky from 'img/milky.jpg';
 import valley from 'img/valley.jpg';
 
-const NUMBERS = Array.from(Array(10)).map((_, i) => i + 1);
 const IMAGES = [fields, desert, milky, valley];
+const SHARPNESS_BUTTONS = [
+  { key: '-2', text: 'Left is a lot sharper then Right', },
+  { key: '-1', text: 'Left is a bit sharper then Right', },
+  { key: '0', text: 'Left is as sharp as Right', },
+  { key: '1', text: 'Right is a bit sharper then Left', },
+  { key: '2', text: 'Right is a lot sharper then Left', }
+];
+
+const ARTEFACTS_BUTTONS = [
+  { key: '-2', text: 'Left has a lot more artefacts then Right' },
+  { key: '-1', text: 'Left has a bit more artefacts then Right' },
+  { key: '0', text: 'Left has as many artefacts as Right' },
+  { key: '1', text: 'Right has a bit more artefacts then Left' },
+  { key: '2', text: 'Right has a lot more artefacts then Left' }
+];
 
 const style = {
+  button: {
+    marginTop: '10px',
+    float: 'right'
+  },
   buttonBar: {
-    display: 'flex',
-    alignItems: 'center',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gridColumnGap: '10px',
     justifyContent: 'space-around'
+  },
+  buttonContainer: {
+    display: 'grid',
+    gridRowGap: '5px'
   },
   imageBar: {
     display: 'grid',
@@ -38,10 +61,12 @@ class App extends Component {
   };
 
   state = {
-    step: 0
+    step: 0,
+    sharpness: null,
+    artefacts: null
   };
 
-  rate(index) {
+  rate() {
     const { history } = this.props;
     let { step } = this.state;
     step ++;
@@ -49,13 +74,17 @@ class App extends Component {
     if (step === IMAGES.length) {
       history.push('/finished');
     } else {
-      this.setState({ step });
+      this.setState({
+        step,
+        sharpness: null,
+        artefacts: null
+      });
     }
   }
 
   render() {
     const { classes } = this.props;
-    const { step } = this.state;
+    const { step, sharpness, artefacts } = this.state;
 
     return (
       <Body>
@@ -67,13 +96,32 @@ class App extends Component {
           <img src={IMAGES[step]} />
         </div>
         <div className={classes.buttonBar}>
-          {NUMBERS.map(i => <Button
-            key={i}
-            variant="fab"
-            color="primary"
-            onClick={() => this.rate(i)}
-          >{i}</Button>)}
+          <div className={classes.buttonContainer}>
+            <h2>Sharpness</h2>
+            {SHARPNESS_BUTTONS.map(({ key, text }) => (<Button
+              key={key}
+              variant={sharpness === key ? 'contained' : 'outlined'}
+              color="secondary"
+              onClick={() => this.setState({ sharpness: key })}
+            >{text}</Button>))}
+          </div>
+          <div className={classes.buttonContainer}>
+            <h2>Artefacts</h2>
+            {ARTEFACTS_BUTTONS.map(({ key, text }) => (<Button
+              key={key}
+              variant={artefacts === key ? 'contained' : 'outlined'}
+              color="secondary"
+              onClick={() => this.setState({ artefacts: key })}
+            >{text}</Button>))}
+          </div>
         </div>
+        <Button
+          onClick={() => this.rate()}
+          color="primary"
+          variant="contained"
+          className={classes.button}
+          disabled={sharpness === null || artefacts === null}
+        >Next Image</Button>
       </Body>
     );
   }
