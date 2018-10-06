@@ -93,8 +93,6 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   let [{ algorithm }] = resizeAlgorithms;
 
   let resize = 1;
-  let innerRadius = 100;
-  let radiusSize = 100;
   let filterStrength = 1;
 
   const previousButton = createButton('Previous Image');
@@ -106,10 +104,6 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
 
   const sliderResize = createSlider(0, 1, resize);
   appendWithLabel('sliders', [sliderResize], 'resize');
-  const sliderInnerRadius = createSlider(0, 300, innerRadius);
-  appendWithLabel('sliders', [sliderInnerRadius], 'filter inner radius');
-  const sliderRadiusSize = createSlider(0, 100, radiusSize);
-  appendWithLabel('sliders', [sliderRadiusSize], 'filter radius size');
   const sliderFilterStrength = createSlider(0, 100, filterStrength);
   appendWithLabel('sliders', [sliderFilterStrength], 'filter strength');
 
@@ -148,24 +142,6 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
     redraw(false);
   });
 
-  // sliderInnerRadius.addEventListener('input', event => {
-  //   innerRadius = parseFloat(event.target.value);
-  //   redraw(true);
-  // });
-  sliderInnerRadius.addEventListener('change', event => {
-    innerRadius = parseFloat(event.target.value);
-    redraw(false);
-  });
-
-  // sliderRadiusSize.addEventListener('input', event => {
-  //   radiusSize = parseFloat(event.target.value);
-  //   redraw(true);
-  // });
-  sliderRadiusSize.addEventListener('change', event => {
-    radiusSize = parseFloat(event.target.value);
-    redraw(false);
-  });
-
   // sliderFilterStrength.addEventListener('input', event => {
   //   filterStrength = parseFloat(event.target.value);
   //   redraw(true);
@@ -181,6 +157,9 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   });
 
   function redraw(grayScale) {
+    let innerRadius = image.width * resize;
+    let radiusSize = image.width * resize;
+
     canvasOriginal.width = canvasResize.width = image.width;
     canvasOriginal.height = canvasResize.height = image.height;
 
