@@ -94,16 +94,16 @@ export default class FourierTransform {
     canvas.width = canvas.height = this._size;
     const context = canvas.getContext('2d');
     const imageData = context.createImageData(this._size, this._size);
-    for (let i = 0; i < this._size ** 2; i ++) {
+    for (let i = 0; i < Math.pow(this._size, 2); i ++) {
       imageData.data[i * 4 + 3] = 255;
     }
 
     const spectrum = [[], [], []];
 
     let max = 1.0;
-    for (let i = 0; i < this._size ** 2; i ++) {
+    for (let i = 0; i < Math.pow(this._size, 2); i ++) {
       for (let j = 0; j < (grayScale ? 1 : 3); j ++) {
-        let magnitude = Math.sqrt(this._real[j][i] ** 2 + this._imag[j][i] ** 2);
+        let magnitude = Math.sqrt(Math.pow(this._real[j][i], 2) + Math.pow(this._imag[j][i], 2));
         if (isLog) magnitude = Math.log(magnitude);
 
         spectrum[j][i] = magnitude;
@@ -112,7 +112,7 @@ export default class FourierTransform {
       }
     }
 
-    for (let i = 0; i < this._size ** 2; i ++) {
+    for (let i = 0; i < Math.pow(this._size, 2); i ++) {
       for (let j = 0; j < (grayScale ? 1 : 3); j ++) {
         spectrum[j][i] = spectrum[j][i] * 255 / max;
       }
@@ -144,7 +144,7 @@ export default class FourierTransform {
     canvas.width = canvas.height = this._size;
     const context = canvas.getContext('2d');
     const imageData = context.createImageData(this._size, this._size);
-    for (let i = 0; i < this._size ** 2; i ++) {
+    for (let i = 0; i < Math.pow(this._size, 2); i ++) {
       imageData.data[i * 4 + 3] = 255;
     }
 
@@ -198,7 +198,7 @@ export default class FourierTransform {
     const n2 = this._size >> 1;
     for (let y =- n2; y < n2; y ++) {
       for (let x =- n2; x < n2; x ++) {
-        const r = Math.sqrt(x ** 2 + y ** 2);
+        const r = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
         if (r < radius) {
           const i = n2 + (y + n2) * this._size + x;
           for (let j = 0; j < (grayScale ? 1 : 3); j ++) {
@@ -216,7 +216,7 @@ export default class FourierTransform {
     const n2 = this._size >> 1;
     for (let y =- n2; y < n2; y ++) {
       for (let x =- n2; x < n2; x ++) {
-        const r = Math.sqrt(x ** 2 + y ** 2);
+        const r = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
         if (r > radius) {
           const i = n2 + (y + n2) * this._size + x;
           for (let j = 0; j < (grayScale ? 1 : 3); j ++) {
@@ -234,7 +234,7 @@ export default class FourierTransform {
     const n2 = this._size >> 1;
     for (let y =- n2; y < n2; y ++) {
       for (let x =- n2; x < n2; x ++) {
-        const r = Math.sqrt(x ** 2 + y ** 2);
+        const r = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
         if (r < radius || r > (radius + bandwidth)) {
           const i = n2 + (y + n2) * this._size + x;
           for (let j = 0; j < (grayScale ? 1 : 3); j ++) {
@@ -252,7 +252,7 @@ export default class FourierTransform {
     const n2 = this._size >> 1;
     for (let y =- n2; y < n2; y ++) {
       for (let x =- n2; x < n2; x ++) {
-        const r = Math.sqrt(x ** 2 + y ** 2);
+        const r = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
 
         let value;
         if (r < radius) {
@@ -317,7 +317,7 @@ function makeSinCosTable(size) {
   const n4 = size >> 2;
   const n8 = size >> 3;
   const n2p4 = n2 + n4;
-  let dc = 2 * Math.sin(Math.PI / size) ** 2;
+  let dc = 2 * Math.pow(Math.sin(Math.PI / size), 2);
   let ds = Math.sqrt(dc*(2 - dc));
   let c = sinCosTable[n4] = 1;
   let s = sinCosTable[0] = 0;
