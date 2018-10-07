@@ -78,35 +78,26 @@ class App extends Component {
   constructor(props) {
     super(props);
 
-    new Promise(resolve => setTimeout(() => {
-      resolve([
-        { filename: '1.jpeg', filterStrength: 100, resized: 1 },
-        { filename: '1.jpeg', filterStrength: 100, resized: 0.5 },
-        { filename: '1.jpeg', filterStrength: 100, resized: 0.25 },
-        { filename: '1.jpeg', filterStrength: 20, resized: 1 },
-        { filename: '1.jpeg', filterStrength: 20, resized: 0.5 },
-        { filename: '1.jpeg', filterStrength: 20, resized: 0.25 },
-        { filename: '1.jpeg', filterStrength: 30, resized: 1 },
-        { filename: '1.jpeg', filterStrength: 30, resized: 0.5 },
-        { filename: '1.jpeg', filterStrength: 30, resized: 0.25 },
-        { filename: '1.jpeg', filterStrength: 50, resized: 1 },
-        { filename: '1.jpeg', filterStrength: 50, resized: 0.5 },
-        { filename: '1.jpeg', filterStrength: 50, resized: 0.25 }
-      ]);
-    }, 1000)).then(data => {
-      Promise.all(data.map(({ filename, ...args }) => {
-        return loadImage(IMAGES[filename]).then(image => {
-          return { ...args, image, filename }
-        });
-      })).then(data => {
-        this.setState({ data })
-      });
-    });
+    fetch(URL, { method: 'POST' }).then(response => response.json()).then(data => {
+      return Promise.all(data.map(({ filename, ...args }) => {
+        return loadImage(IMAGES[filename])
+          .then(image => ({ ...args, image, filename }));
+      }))
+    }).then(data => this.setState({ data }));;
   }
 
   rate() {
     const { history } = this.props;
-    let { step } = this.state;
+    let { step, data, sharpness, artefacts } = this.state;
+
+    fetch(URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify(...data[step], { sharpness, artefacts })
+    });
+
     step ++;
 
     if (step === IMAGES.length) {
