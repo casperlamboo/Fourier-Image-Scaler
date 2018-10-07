@@ -77,8 +77,7 @@ function appendWithLabel(id, doms, label) {
   const child = document.createElement('div');
   child.style.marginRight = "5px"
 
-  const p = document.createElement('p');
-  p.innerHTML = label;
+  const p = createParagraph(label);
 
   child.appendChild(p);
   for (const dom of doms) {
@@ -86,6 +85,13 @@ function appendWithLabel(id, doms, label) {
   }
 
   document.getElementById(id).appendChild(child);
+}
+
+function createParagraph(text) {
+  const p = document.createElement('p');
+  p.innerHTML = text;
+
+  return p;
 }
 
 Promise.all(imageSrcs.map(loadImage)).then(images => {
@@ -99,13 +105,15 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   const nextButton = createButton('Next Image');
   appendWithLabel('sliders', [previousButton, nextButton], 'Image');
 
-  const algoritmSelect = createSelect(resizeAlgorithms.map(({ algorithm, name }) => ({ value: algorithm, name })));
-  appendWithLabel('sliders', [algoritmSelect], 'Resize Algorithm');
+  const algorithmSelect = createSelect(resizeAlgorithms.map(({ algorithm, name }) => ({ value: algorithm, name })));
+  appendWithLabel('sliders', [algorithmSelect], 'Resize Algorithm');
 
   const sliderResize = createSlider(0, 1, resize);
-  appendWithLabel('sliders', [sliderResize], 'resize');
+  const resizeValue = createParagraph(resize);
+  appendWithLabel('sliders', [sliderResize, resizeValue], 'resize');
   const sliderFilterStrength = createSlider(0, 100, filterStrength);
-  appendWithLabel('sliders', [sliderFilterStrength], 'filter strength');
+  const filterStrengthValue = createParagraph(filterStrength);
+  appendWithLabel('sliders', [sliderFilterStrength, filterStrengthValue], 'filter strength');
 
   const canvasOriginal = createCanvas();
   appendWithLabel('original', [canvasOriginal], 'Original Image');
@@ -139,6 +147,7 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   // });
   sliderResize.addEventListener('change', event => {
     resize = parseFloat(event.target.value);
+    resizeValue.innerHTML = resize;
     redraw(false);
   });
 
@@ -148,10 +157,11 @@ Promise.all(imageSrcs.map(loadImage)).then(images => {
   // });
   sliderFilterStrength.addEventListener('change', event => {
     filterStrength = parseFloat(event.target.value);
+    filterStrengthValue.innerHTML = filterStrength;
     redraw(false);
   });
 
-  algoritmSelect.addEventListener('change', event => {
+  algorithmSelect.addEventListener('change', event => {
     algorithm = event.target.value;
     redraw(false);
   });
