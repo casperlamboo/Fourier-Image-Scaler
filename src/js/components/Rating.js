@@ -7,18 +7,17 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import Stepper from '@material-ui/core/Stepper';
 import Step from '@material-ui/core/Step';
 import StepLabel from '@material-ui/core/StepLabel';
-import milky from 'img/milky.jpg';
-import valley from 'img/valley.jpg';
-import desert from 'img/desert.jpg';
-import fields from 'img/fields.jpg';
+import portraitSrc from 'img/PORTRAIT.png';
+import landscapeSrc from 'img/LANDSCAPE.png';
+import textSrc from 'img/TEXT.png';
+
 import { loadImage, resizeImage } from 'js/imageUtils.js';
 import FourierTransform from 'js/FourierTransform.js';
 
 const IMAGES = {
-  '1.jpeg': milky,
-  '2.jpeg': valley,
-  '3.jpeg': desert,
-  '4.jpeg': fields
+  '1.jpeg': portraitSrc,
+  '2.jpeg': landscapeSrc,
+  '3.jpeg': textSrc
 };
 const URL = 'https://php5naar7.nl/images.php?fetchImage';
 const SHARPNESS_BUTTONS = [
