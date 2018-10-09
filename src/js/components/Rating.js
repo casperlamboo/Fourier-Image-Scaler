@@ -19,7 +19,7 @@ const IMAGES = {
   '2.jpeg': landscapeSrc,
   '3.jpeg': textSrc
 };
-const URL = 'https://php5naar7.nl/images.php?fetchImage';
+const API = 'https://php5naar7.nl/images.php';
 const SHARPNESS_BUTTONS = [
   { key: '-2', text: 'Left is a lot sharper then Right', },
   { key: '-1', text: 'Left is a bit sharper then Right', },
@@ -77,7 +77,7 @@ class App extends Component {
   constructor(props) {
     super(props);
 
-    fetch(URL, { method: 'POST' }).then(response => response.json()).then(data => {
+    fetch(`${API}?fetchImage`, { method: 'GET' }).then(response => response.json()).then(data => {
       return Promise.all(data.map(({ filename, ...args }) => {
         return loadImage(IMAGES[filename])
           .then(image => ({ ...args, image, filename }));
@@ -88,18 +88,20 @@ class App extends Component {
   rate() {
     const { history } = this.props;
     let { step, data, sharpness, artefacts } = this.state;
+    const { filterStrength, resized, filename } = data[step];
 
-    fetch(URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-      body: JSON.stringify(...data[step], { sharpness, artefacts })
-    });
+    const url = new URL(API);
+    url.searchParams.append('filterStrength', filterStrength);
+    url.searchParams.append('resized', resized);
+    url.searchParams.append('filename', filename);
+    url.searchParams.append('sharpness', sharpness);
+    url.searchParams.append('artefacts', artefacts);
+
+    fetch(url.toString(), { method: 'GET' });
 
     step ++;
 
-    if (step === IMAGES.length) {
+    if (step === data.length) {
       history.push('/finished');
     } else {
       this.setState({
