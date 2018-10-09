@@ -9,7 +9,10 @@ import content from 'md/index.md';
 import { Link } from "react-router-dom";
 
 const style = {
-  ...textMarkup
+  ...textMarkup,
+  content: {
+    maxWidth: '800px'
+  }
 };
 
 class App extends Component {
@@ -22,11 +25,11 @@ class App extends Component {
 
     return (
       <Body>
-        <div className={classes.text}>
+        <div className={`${classes.text} ${classes.content}`}>
           <ReactMarkdown source={content} />
         </div>
         <Link to="/rate">
-          <Button variant="contained" color="primary">Rate the Images!</Button>
+          <Button variant="contained" color="primary">Start</Button>
         </Link>
       </Body>
     );
